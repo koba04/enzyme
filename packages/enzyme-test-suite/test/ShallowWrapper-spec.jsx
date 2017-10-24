@@ -3520,14 +3520,79 @@ describe('shallow', () => {
             'render',
           ],
         ];
-        if (!REACT16) {
-          expected.push([
-            'componentDidUpdate',
+        expected.push([
+          'componentDidUpdate',
+          { foo: 'props' }, { foo: 'props' },
+          { foo: 'bar' }, { foo: 'baz' },
+          REACT16 ? undefined : { foo: 'context' },
+        ]);
+        expect(spy.args).to.deep.equal(expected);
+      });
+
+      it('should call shouldComponentUpdate, componentWillUpdate and componentDidUpdate when calling setState of React Component instance', () => {
+        const spy = sinon.spy();
+
+        let instance;
+        class Foo extends React.Component {
+          constructor(...args) {
+            super(...args);
+            this.state = {
+              foo: 'bar',
+            };
+          }
+          shouldComponentUpdate(nextProps, nextState, nextContext) {
+            spy('shouldComponentUpdate', this.props, nextProps, this.state, nextState, nextContext);
+            return true;
+          }
+          componentWillUpdate(nextProps, nextState, nextContext) {
+            spy('componentWillUpdate', this.props, nextProps, this.state, nextState, nextContext);
+          }
+          componentDidUpdate(prevProps, prevState, prevContext) {
+            spy('componentDidUpdate', prevProps, this.props, prevState, this.state, prevContext);
+          }
+          render() {
+            instance = this;
+            spy('render');
+            return <div>foo</div>;
+          }
+        }
+        Foo.contextTypes = {
+          foo: PropTypes.string,
+        };
+
+        shallow(
+          <Foo foo="props" />,
+          {
+            context: { foo: 'context' },
+          },
+        );
+        instance.setState({ foo: 'baz' });
+        const expected = [
+          [
+            'render',
+          ],
+          [
+            'shouldComponentUpdate',
             { foo: 'props' }, { foo: 'props' },
             { foo: 'bar' }, { foo: 'baz' },
             { foo: 'context' },
-          ]);
-        }
+          ],
+          [
+            'componentWillUpdate',
+            { foo: 'props' }, { foo: 'props' },
+            { foo: 'bar' }, { foo: 'baz' },
+            { foo: 'context' },
+          ],
+          [
+            'render',
+          ],
+        ];
+        expected.push([
+          'componentDidUpdate',
+          { foo: 'props' }, { foo: 'props' },
+          { foo: 'bar' }, { foo: 'baz' },
+          REACT16 ? undefined : { foo: 'context' },
+        ]);
         expect(spy.args).to.deep.equal(expected);
       });
 

@@ -115,10 +115,57 @@ class ShallowWrapper {
     if (!root) {
       privateSet(this, ROOT, this);
       privateSet(this, UNRENDERED, nodes);
-      const renderer = getAdapter(options).createRenderer({ mode: 'shallow', ...options });
+      const adapter = getAdapter(options);
+      const renderer = adapter.createRenderer({ mode: 'shallow', ...options });
       privateSet(this, RENDERER, renderer);
       this[RENDERER].render(nodes, options.context);
       const instance = this[RENDERER].getNode().instance;
+      if (instance) {
+        const originalSetState = instance.setState;
+        instance.setState = (state, callback) => {
+          this.single('setState', () => {
+            withSetStateAllowed(() => {
+              const prevProps = instance.props;
+              const prevState = instance.state;
+              const prevContext = instance.context;
+              let shouldRender = true;
+              // This is a dirty hack but it requires to know the result of shouldComponentUpdate.
+              // When shouldComponentUpdate returns false we shouldn't call componentDidUpdate.
+              // shouldComponentUpdate is called in `instance.setState`
+              // so we replace shouldComponentUpdate to know the result and restore it later.
+              let originalShouldComponentUpdate;
+              if (
+                !this[OPTIONS].disableLifecycleMethods &&
+                adapter.options.enableComponentDidUpdateOnSetState &&
+                instance &&
+                typeof instance.shouldComponentUpdate === 'function'
+              ) {
+                originalShouldComponentUpdate = instance.shouldComponentUpdate;
+                instance.shouldComponentUpdate = (...args) => {
+                  shouldRender = originalShouldComponentUpdate.apply(instance, args);
+                  instance.shouldComponentUpdate = originalShouldComponentUpdate;
+                  return shouldRender;
+                };
+              }
+              originalSetState.call(instance, state, callback);
+              if (
+                shouldRender &&
+                !this[OPTIONS].disableLifecycleMethods &&
+                adapter.options.enableComponentDidUpdateOnSetState &&
+                instance &&
+                typeof instance.componentDidUpdate === 'function'
+              ) {
+                if (adapter.options.supportPrevContextArgumentOfComponentDidUpdate) {
+                  instance.componentDidUpdate(prevProps, prevState, prevContext);
+                } else {
+                  instance.componentDidUpdate(prevProps, prevState);
+                }
+              }
+              this.update();
+            });
+          });
+        };
+      }
       if (
         !options.disableLifecycleMethods &&
         instance &&
@@ -373,49 +420,7 @@ class ShallowWrapper {
     if (this.instance() === null || this[RENDERER].getNode().nodeType === 'function') {
       throw new Error('ShallowWrapper::setState() can only be called on class components');
     }
-    this.single('setState', () => {
-      withSetStateAllowed(() => {
-        const adapter = getAdapter(this[OPTIONS]);
-        const instance = this.instance();
-        const prevProps = instance.props;
-        const prevState = instance.state;
-        const prevContext = instance.context;
-        let shouldRender = true;
-        // This is a dirty hack but it requires to know the result of shouldComponentUpdate.
-        // When shouldComponentUpdate returns false we shouldn't call componentDidUpdate.
-        // shouldComponentUpdate is called in `instance.setState`
-        // so we replace shouldComponentUpdate to know the result and restore it later.
-        let originalShouldComponentUpdate;
-        if (
-          this[OPTIONS].lifecycleExperimental &&
-          adapter.options.enableComponentDidUpdateOnSetState &&
-          instance &&
-          typeof instance.shouldComponentUpdate === 'function'
-        ) {
-          originalShouldComponentUpdate = instance.shouldComponentUpdate;
-          instance.shouldComponentUpdate = (...args) => {
-            shouldRender = originalShouldComponentUpdate.apply(instance, args);
-            instance.shouldComponentUpdate = originalShouldComponentUpdate;
-            return shouldRender;
-          };
-        }
-        instance.setState(state, callback);
-        if (
-          shouldRender &&
-          this[OPTIONS].lifecycleExperimental &&
-          adapter.options.enableComponentDidUpdateOnSetState &&
-          instance &&
-          typeof instance.componentDidUpdate === 'function'
-        ) {
-          if (adapter.options.supportPrevContextArgumentOfComponentDidUpdate) {
-            instance.componentDidUpdate(prevProps, prevState, prevContext);
-          } else {
-            instance.componentDidUpdate(prevProps, prevState);
-          }
-        }
-        this.update();
-      });
-    });
+    this.instance().setState(state, callback);
     return this;
   }
 
