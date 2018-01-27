@@ -41,6 +41,7 @@ EnzymeAdapter.MODES = {
   STRING: 'string',
   MOUNT: 'mount',
   SHALLOW: 'shallow',
+  TREE: 'tree',
 };
 
 module.exports = EnzymeAdapter;

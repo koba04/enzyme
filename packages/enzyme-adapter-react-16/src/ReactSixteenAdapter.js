@@ -6,6 +6,8 @@ import ReactDOMServer from 'react-dom/server';
 // eslint-disable-next-line import/no-unresolved, import/extensions
 import ShallowRenderer from 'react-test-renderer/shallow';
 // eslint-disable-next-line import/no-unresolved, import/extensions
+import TreeRenderer from 'react-test-renderer';
+// eslint-disable-next-line import/no-unresolved, import/extensions
 import TestUtils from 'react-dom/test-utils';
 import { EnzymeAdapter } from 'enzyme';
 import {
@@ -253,6 +255,18 @@ class ReactSixteenAdapter extends EnzymeAdapter {
     };
   }
 
+  createTreeRenderer() {
+    let cachedNode = null;
+    return {
+      render(el) {
+        cachedNode = TreeRenderer.create(el).root;
+      },
+      getNode() {
+        return cachedNode;
+      },
+    };
+  }
+
   createStringRenderer(options) {
     return {
       render(el, context) {
@@ -277,6 +291,7 @@ class ReactSixteenAdapter extends EnzymeAdapter {
       case EnzymeAdapter.MODES.MOUNT: return this.createMountRenderer(options);
       case EnzymeAdapter.MODES.SHALLOW: return this.createShallowRenderer(options);
       case EnzymeAdapter.MODES.STRING: return this.createStringRenderer(options);
+      case EnzymeAdapter.MODES.TREE: return this.createTreeRenderer(options);
       default:
         throw new Error(`Enzyme Internal Error: Unrecognized mode: ${options.mode}`);
     }
