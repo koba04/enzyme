@@ -20,6 +20,12 @@ class TreeWrapper {
   prop(propName) {
     return this.props()[propName];
   }
+  instance() {
+    return this[RENDERER].getNode().instance;
+  }
+  state(name) {
+    return this.instance().state[name];
+  }
 }
 
 export default TreeWrapper;
