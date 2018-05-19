@@ -1,6 +1,6 @@
 {
-  "name": "enzyme-adapter-react-16",
-  "version": "1.1.1",
+  "name": "enzyme-adapter-react-16.2",
+  "version": "1.0.0",
   "description": "JavaScript Testing utilities for React",
   "homepage": "http://airbnb.io/enzyme/",
   "main": "build",
@@ -40,12 +40,12 @@
     "object.values": "^1.0.4",
     "prop-types": "^15.6.0",
     "react-reconciler": "^0.7.0",
-    "react-test-renderer": "^16.3.0"
+    "react-test-renderer": "16.0.0 - 16.2.x"
   },
   "peerDependencies": {
     "enzyme": "^3.0.0",
-    "react": "^16.3.0",
-    "react-dom": "^16.3.0"
+    "react": "16.0.0 - 16.2.x",
+    "react-dom": "16.0.0 - 16.2.x"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
