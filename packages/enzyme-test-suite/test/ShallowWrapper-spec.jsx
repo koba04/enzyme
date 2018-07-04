@@ -3976,6 +3976,35 @@ describe('shallow', () => {
       });
     });
 
+    context('component instance', () => {
+      it('should be called componentDidUpdate when the component.setState is called', () => {
+        const spy = sinon.spy();
+        class Foo extends React.Component {
+          constructor(props) {
+            super(props);
+            this.state = {
+              foo: 'init',
+            };
+          }
+          componentDidUpdate() {
+            spy();
+          }
+          onChange() {
+            // enzyme can't handle the update because `this` is a ReactComponent instance,
+            // not a ShallowWrapper instance.
+            this.setState({ foo: 'update' });
+          }
+          render() {
+            return <div>{this.state.foo}</div>;
+          }
+        }
+        const wrapper = shallow(<Foo />);
+        wrapper.instance().onChange();
+        expect(wrapper.state('foo')).to.equal('update');
+        expect(spy.calledOnce).to.equal(true); // This test is failed
+      });
+    });
+
     describeIf(REACT16, 'support getSnapshotBeforeUpdate', () => {
       it('should call getSnapshotBeforeUpdate and pass snapshot to componentDidUpdate', () => {
         const spy = sinon.spy();
