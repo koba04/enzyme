@@ -198,7 +198,12 @@ class ShallowWrapper {
       ({ instance } = this[RENDERER].getNode());
     }
     // Ensure to call componentDidUpdate when instance.setState is called
-    if (instance && lifecycles.componentDidUpdate.onSetState && !instance[SET_STATE]) {
+    if (
+      instance
+      && !options.disableLifecycleMethods
+      && lifecycles.componentDidUpdate.onSetState
+      && !instance[SET_STATE]
+    ) {
       privateSet(instance, SET_STATE, instance.setState);
       instance.setState = (...args) => this.setState(...args);
     }
